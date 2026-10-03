@@ -310,17 +310,14 @@ export default function Dashboard() {
       {/* Quick links */}
       <div className="grid three" style={{ marginTop: 16 }}>
         <Link href="/cases" className="card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 20, marginBottom: 6, opacity: 0.5 }}>🔍</div>
           <b style={{ fontSize: 13 }}>Investigation queue</b>
           <div className="small">Review prioritized discrepancies</div>
         </Link>
         <Link href="/patterns" className="card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 20, marginBottom: 6, opacity: 0.5 }}>🔗</div>
           <b style={{ fontSize: 13 }}>Pattern intelligence</b>
           <div className="small">Explore recurring error signals</div>
         </Link>
         <a href={api.exportCases('csv')} target="_blank" className="card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 20, marginBottom: 6, opacity: 0.5 }}>📊</div>
           <b style={{ fontSize: 13 }}>Export report</b>
           <div className="small">Download full investigation CSV</div>
         </a>
