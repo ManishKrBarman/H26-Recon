@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import math
 import sqlite3
 from pathlib import Path
@@ -59,6 +60,26 @@ def _issue_list(value) -> List[str]:
     return [x.strip() for x in re.split(r"[;|]", str(value)) if x.strip()]
 
 
+def stable_case_id(row: pd.Series, issue: str) -> str:
+    """Deterministic case id: survives pipeline reruns and data reordering.
+
+    Keyed on the issue type plus the source references that identify the
+    finding (invoice, vendor, ledger and GST refs). Two runs over the same
+    data always produce the same id; changed data produces a new id, and the
+    review-persistence layer reports the old decision as orphaned.
+    """
+    parts = [
+        issue,
+        str(row.get("invoice_id", "") or ""),
+        str(row.get("canonical_invoice_id", row.get("invoice_id", "")) or ""),
+        str(row.get("vendor_code", "") or ""),
+        str(row.get("ledger_ref", "") or ""),
+        str(row.get("gst_ref", "") or ""),
+    ]
+    digest = hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()[:12].upper()
+    return f"CASE-{digest}"
+
+
 def _priority_score(row: pd.Series, issue: str) -> float:
     severity = PRIORITY_WEIGHTS.get(str(row.get("severity", "LOW")).upper(), 1)
     confidence = _safe_float(row.get("match_confidence"), 0.0)
@@ -109,7 +130,7 @@ def build_investigation_cases(reconciliation: pd.DataFrame, invoices: pd.DataFra
             exposure = _exposure(row, issue)
             evidence = str(row.get("evidence", ""))
             confidence = _safe_float(row.get("match_confidence"), 0.0)
-            case_id = f"CASE-{len(rows) + 1:05d}"
+            case_id = stable_case_id(row, issue)
             rows.append({
                 "case_id": case_id,
                 "invoice_id": row.get("invoice_id"),
@@ -137,8 +158,8 @@ def build_investigation_cases(reconciliation: pd.DataFrame, invoices: pd.DataFra
     ]
     result = pd.DataFrame(rows, columns=columns)
     if not result.empty:
+        # Display order only — case ids themselves are content-derived and stable.
         result = result.sort_values(["priority_score", "financial_exposure"], ascending=False).reset_index(drop=True)
-        result["case_id"] = [f"CASE-{i:05d}" for i in range(1, len(result) + 1)]
     return result
 
 

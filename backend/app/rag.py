@@ -26,11 +26,13 @@ try:
 except ImportError:
     from sklearn.externals import joblib  # type: ignore[attr-defined]
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "data"
-DB = DATA / "reconai.db"
-KB = DATA / "gst_knowledge_base.json"
-MODELS = ROOT / "models"
+from . import config
+
+ROOT = config.ROOT
+DATA = config.DATA_DIR
+DB = config.DB_PATH
+KB = config.KB_PATH
+MODELS = config.MODELS_DIR
 
 # Curated, high-level excerpts from official CBIC GST material. These are retrieval context,
 # not a complete legal database. Source URLs are kept with every chunk for traceability.
@@ -155,9 +157,11 @@ def enrich_with_rag(base: Path = DATA) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def save_outputs(df: pd.DataFrame, base: Path = DATA):
+def save_outputs(df: pd.DataFrame, base: Path | None = None, db_path: Path | None = None):
+    base = Path(base) if base else config.DATA_DIR
+    db_path = Path(db_path) if db_path else config.DB_PATH
     df.to_csv(base / "investigation_cases_rag.csv", index=False)
-    with sqlite3.connect(DB) as conn:
+    with sqlite3.connect(db_path) as conn:
         df.to_sql("investigation_cases_rag", conn, if_exists="replace", index=False)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rag_rule ON investigation_cases_rag(gst_rule_title)")
         conn.commit()

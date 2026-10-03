@@ -26,9 +26,11 @@ try:
 except ImportError:  # fallback bundled with sklearn
     from sklearn.externals import joblib  # type: ignore[attr-defined]
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "data"
-MODELS = ROOT / "models"
+from . import config
+
+ROOT = config.ROOT
+DATA = config.DATA_DIR
+MODELS = config.MODELS_DIR
 
 FEATURE_COLUMNS = [
     "taxable_amount", "tax_amount", "total_amount",

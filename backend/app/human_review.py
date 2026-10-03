@@ -5,12 +5,15 @@ from pathlib import Path
 from typing import Optional
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / 'data'
-DB = DATA / 'reconai.db'
+from . import config
+
+ROOT = config.ROOT
+DATA = config.DATA_DIR
+DB = config.DB_PATH
 INPUT = DATA / 'investigation_cases_rag.csv'
 OUTPUT = DATA / 'investigation_cases_reviewed.csv'
 VALID_DECISIONS = {'CONFIRM', 'REJECT', 'NEEDS_REVIEW'}
+STATUS_FOR_DECISION = {'CONFIRM': 'CONFIRMED', 'REJECT': 'REJECTED', 'NEEDS_REVIEW': 'NEEDS_REVIEW'}
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS review_decisions (
@@ -46,6 +49,11 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _connect(db: Path) -> sqlite3.Connection:
+    conn = sqlite3.connect(db, timeout=30)
+    return conn
+
+
 def record_decision(case_id: str, decision: str, reviewer: str,
                     notes: str = '', db: Path = DB) -> dict:
     decision = decision.upper().strip()
@@ -55,7 +63,8 @@ def record_decision(case_id: str, decision: str, reviewer: str,
     if not reviewer:
         raise ValueError('reviewer is required')
     init_review_tables(db)
-    with sqlite3.connect(db) as conn:
+    new_status = STATUS_FOR_DECISION[decision]
+    with _connect(db) as conn:
         row = conn.execute(
             'SELECT status FROM investigation_cases_rag WHERE case_id = ?', (case_id,)
         ).fetchone()
@@ -73,8 +82,11 @@ def record_decision(case_id: str, decision: str, reviewer: str,
                 decided_at=excluded.decided_at,
                 previous_status=excluded.previous_status
         ''', (case_id, decision, reviewer, notes, now, previous_status))
-        new_status = {'CONFIRM': 'CONFIRMED', 'REJECT': 'REJECTED', 'NEEDS_REVIEW': 'NEEDS_REVIEW'}[decision]
-        conn.execute('UPDATE investigation_cases_rag SET status = ? WHERE case_id = ?', (new_status, case_id))
+        conn.execute('''
+            UPDATE investigation_cases_rag
+            SET status = ?, human_decision = ?, review_notes = ?
+            WHERE case_id = ?
+        ''', (new_status, decision, notes, case_id))
         conn.execute('''INSERT INTO audit_log(case_id,event_type,actor,event_data,created_at)
                         VALUES (?,?,?,?,?)''',
                      (case_id, 'REVIEW_DECISION', reviewer,
@@ -91,6 +103,49 @@ def record_event(case_id: str, event_type: str, actor: str, event_data: str = ''
                      (case_id, event_type, actor, event_data, now))
         conn.commit()
     return {'case_id': case_id, 'event_type': event_type, 'actor': actor, 'created_at': now}
+
+
+def reapply_decisions(db: Path = DB) -> dict:
+    """Re-apply stored review decisions onto freshly rebuilt case rows.
+
+    After the pipeline replaces the case tables (which resets status to
+    OPEN), this copies each stored decision back onto the matching case and
+    writes a STATUS_CARRIED_OVER audit entry. Decisions whose case_id no
+    longer exists (data changed, case not produced any more) are returned as
+    ``orphans`` and never silently dropped.
+
+    Feedback may change ranking only; this never auto-closes a case.
+    """
+    init_review_tables(db)
+    applied, missing = 0, []
+    with _connect(db) as conn:
+        decisions = conn.execute(
+            'SELECT case_id, decision, reviewer, notes, decided_at FROM review_decisions'
+        ).fetchall()
+        for case_id, decision, reviewer, notes, decided_at in decisions:
+            row = conn.execute(
+                'SELECT 1 FROM investigation_cases_rag WHERE case_id = ?', (case_id,)
+            ).fetchone()
+            if row is None:
+                missing.append({'case_id': case_id, 'decision': decision, 'decided_at': decided_at})
+                continue
+            new_status = STATUS_FOR_DECISION.get(decision, 'OPEN')
+            conn.execute(
+                '''UPDATE investigation_cases_rag
+                   SET status = ?, human_decision = ?, review_notes = ?
+                   WHERE case_id = ?''',
+                (new_status, decision, notes or '', case_id),
+            )
+            conn.execute(
+                '''INSERT INTO audit_log(case_id,event_type,actor,event_data,created_at)
+                   VALUES (?,?,?,?,?)''',
+                (case_id, 'STATUS_CARRIED_OVER', 'pipeline',
+                 f'decision={decision};reviewer={reviewer};decided_at={decided_at};note=re-applied after pipeline rebuild',
+                 _now()),
+            )
+            applied += 1
+        conn.commit()
+    return {'applied': applied, 'orphans': missing}
 
 
 def load_review_queue(db: Path = DB, status: Optional[str] = 'OPEN', limit: int = 50) -> pd.DataFrame:

@@ -1,0 +1,144 @@
+{
+  "dataset": {
+    "mode": "current_dataset",
+    "per_issue": [
+      {
+        "discrepancy_type": "amount_mismatch",
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "discrepancy_type": "date_mismatch",
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "discrepancy_type": "duplicate_invoice",
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "discrepancy_type": "missing_gst",
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "discrepancy_type": "missing_ledger",
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      {
+        "discrepancy_type": "tax_mismatch",
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    ],
+    "macro_f1": 1.0
+  },
+  "holdout": {
+    "mode": "holdout",
+    "n_invoices": 1020,
+    "n_injected": 120,
+    "per_issue": [
+      {
+        "discrepancy_type": "amount_mismatch",
+        "true_positive": 18,
+        "false_positive": 0,
+        "false_negative": 2,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1": 0.9474
+      },
+      {
+        "discrepancy_type": "date_mismatch",
+        "true_positive": 19,
+        "false_positive": 0,
+        "false_negative": 1,
+        "precision": 1.0,
+        "recall": 0.95,
+        "f1": 0.9744
+      },
+      {
+        "discrepancy_type": "duplicate_invoice",
+        "true_positive": 20,
+        "false_positive": 20,
+        "false_negative": 0,
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1": 0.6667
+      },
+      {
+        "discrepancy_type": "missing_gst",
+        "true_positive": 20,
+        "false_positive": 36,
+        "false_negative": 0,
+        "precision": 0.3571,
+        "recall": 1.0,
+        "f1": 0.5263
+      },
+      {
+        "discrepancy_type": "missing_ledger",
+        "true_positive": 20,
+        "false_positive": 37,
+        "false_negative": 0,
+        "precision": 0.3509,
+        "recall": 1.0,
+        "f1": 0.5195
+      },
+      {
+        "discrepancy_type": "tax_mismatch",
+        "true_positive": 18,
+        "false_positive": 0,
+        "false_negative": 2,
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1": 0.9474
+      }
+    ],
+    "macro_f1": 0.7636,
+    "ml_anomaly": {
+      "flagged_rows": 51,
+      "flagged_injected": 7,
+      "precision_vs_injected": 0.1373
+    },
+    "pattern_recall": 1.0,
+    "n_pattern_recurrences_gt": 2,
+    "n_patterns_detected": 15
+  },
+  "negative_control": {
+    "mode": "negative_control",
+    "n_invoices": 1000,
+    "flagged_rows": 69,
+    "flagged_invoices": 69,
+    "false_positive_rate_rows": 0.069,
+    "false_positive_rate_invoices": 0.069,
+    "by_issue": {
+      "missing_gst": 36,
+      "missing_ledger": 35
+    }
+  }
+}

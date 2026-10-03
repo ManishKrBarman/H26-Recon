@@ -2,8 +2,10 @@ from sqlalchemy import Boolean, Date, Float, Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-DB_PATH = ROOT / "data" / "reconai.db"
+from . import config
+
+ROOT = config.ROOT
+DB_PATH = config.DB_PATH
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 class Base(DeclarativeBase):

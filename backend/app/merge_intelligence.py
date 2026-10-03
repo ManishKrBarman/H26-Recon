@@ -1,7 +1,9 @@
 from __future__ import annotations
 from pathlib import Path
 import pandas as pd
-ROOT=Path(__file__).resolve().parents[2]; DATA=ROOT/"data"
+
+from . import config
+ROOT = config.ROOT; DATA = config.DATA_DIR
 
 def merge_anomaly_signals(cases: pd.DataFrame, anomalies: pd.DataFrame) -> pd.DataFrame:
     out=cases.copy(); sig=anomalies[["invoice_id","anomaly_score","ml_anomaly","anomaly_reason","model"]]

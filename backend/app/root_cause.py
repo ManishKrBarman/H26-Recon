@@ -7,8 +7,10 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 
-DATA = Path(__file__).resolve().parents[2] / "data"
-DB = DATA / "reconai.db"
+from . import config
+
+DATA = config.DATA_DIR
+DB = config.DB_PATH
 
 ISSUE_ROOT_CAUSE = {
     "duplicate_invoice": ("Possible duplicate booking", "Compare the linked records and confirm whether the same economic transaction was recorded more than once."),
@@ -32,7 +34,7 @@ def _fmt_money(x):
     return f"₹{_f(x):,.2f}"
 
 
-def _load(base: Path = DATA):
+def _load(base: Path | None = None):
     cases = pd.read_csv(base / "investigation_cases_patterned.csv")
     inv = pd.read_csv(base / "invoices.csv")
     led = pd.read_csv(base / "ledger.csv")
@@ -57,7 +59,7 @@ def _evidence(issue, irow, lrow, grow):
     return " ".join(parts)
 
 
-def enrich_root_cause(cases: pd.DataFrame, base: Path = DATA) -> pd.DataFrame:
+def enrich_root_cause(cases: pd.DataFrame, base: Path | None = None) -> pd.DataFrame:
     cases = cases.copy()
     _, inv, led, gst, vendors = _load(base)
     inv_by = {str(r.invoice_id): r for r in inv.itertuples(index=False)}
@@ -139,10 +141,12 @@ def enrich_root_cause(cases: pd.DataFrame, base: Path = DATA) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
-def save_root_cause_outputs(df: pd.DataFrame, base: Path = DATA):
+def save_root_cause_outputs(df: pd.DataFrame, base: Path | None = None, db_path: Path | None = None):
+    base = Path(base) if base else config.DATA_DIR
+    db_path = Path(db_path) if db_path else config.DB_PATH
     base.mkdir(parents=True, exist_ok=True)
     df.to_csv(base / "investigation_cases_explained.csv", index=False, encoding="utf-8-sig")
-    with sqlite3.connect(DB) as conn:
+    with sqlite3.connect(db_path) as conn:
         df.to_sql("investigation_cases_explained", conn, if_exists="replace", index=False)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_explained_priority ON investigation_cases_explained(priority_band)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_explained_root_cause ON investigation_cases_explained(root_cause)")

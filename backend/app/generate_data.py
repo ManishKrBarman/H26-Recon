@@ -6,8 +6,10 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "data"
+from . import config
+
+ROOT = config.ROOT
+DATA = config.DATA_DIR
 DATA.mkdir(parents=True, exist_ok=True)
 
 GST_RATES = [5.0, 12.0, 18.0, 28.0]
@@ -31,9 +33,11 @@ def make_vendors(n: int) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def generate(n: int, seed: int) -> None:
+def generate(n: int, seed: int, data_dir: Path | None = None) -> None:
     rng = np.random.default_rng(seed)
     random.seed(seed)
+    data_dir = Path(data_dir) if data_dir else DATA
+    data_dir.mkdir(parents=True, exist_ok=True)
     vendors = make_vendors(max(25, min(100, n // 10)))
     start = date(2026, 1, 1)
 
@@ -102,12 +106,12 @@ def generate(n: int, seed: int) -> None:
                 truth.append([invoice_id, kind, "ledger", "Ledger date intentionally shifted by 15 days."])
         cursor += count
 
-    invoices.to_csv(DATA / "invoices.csv", index=False)
-    ledger.to_csv(DATA / "ledger.csv", index=False)
-    gst.to_csv(DATA / "gst_records.csv", index=False)
-    vendors.to_csv(DATA / "vendors.csv", index=False)
-    pd.DataFrame(truth, columns=["invoice_id","discrepancy_type","affected_table","description"]).to_csv(DATA / "ground_truth.csv", index=False)
-    print(f"Generated {len(invoices)} invoices, {len(ledger)} ledger rows, {len(gst)} GST rows and {len(truth)} ground-truth cases in {DATA}")
+    invoices.to_csv(data_dir / "invoices.csv", index=False)
+    ledger.to_csv(data_dir / "ledger.csv", index=False)
+    gst.to_csv(data_dir / "gst_records.csv", index=False)
+    vendors.to_csv(data_dir / "vendors.csv", index=False)
+    pd.DataFrame(truth, columns=["invoice_id","discrepancy_type","affected_table","description"]).to_csv(data_dir / "ground_truth.csv", index=False)
+    print(f"Generated {len(invoices)} invoices, {len(ledger)} ledger rows, {len(gst)} GST rows and {len(truth)} ground-truth cases in {data_dir}")
 
 
 if __name__ == "__main__":

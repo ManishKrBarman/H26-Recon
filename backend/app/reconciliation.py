@@ -15,10 +15,12 @@ import numpy as np
 import pandas as pd
 from rapidfuzz.fuzz import ratio
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT / "data"
+from . import config
 
-MONEY_TOLERANCE = 1.00
+ROOT = config.ROOT
+DATA = config.DATA_DIR
+
+MONEY_TOLERANCE = config.MONEY_TOLERANCE
 DATE_TOLERANCE_DAYS = 7
 MATCH_THRESHOLD = 55.0
 
@@ -236,7 +238,7 @@ def load_data(data_dir: Path = DATA) -> tuple[pd.DataFrame, pd.DataFrame, pd.Dat
     # If data files are missing (e.g. fresh clone / fresh Docker container), generate initial demo dataset
     if not (inv_path.exists() and led_path.exists() and gst_path.exists()):
         from .generate_data import generate
-        generate(100, seed=42)
+        generate(config.DEMO_INVOICE_COUNT, seed=config.DEMO_SEED)
 
     return (
         pd.read_csv(inv_path),
