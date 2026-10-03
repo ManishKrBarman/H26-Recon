@@ -770,5 +770,86 @@
         "error": ""
       }
     ]
+  },
+  {
+    "finished_at": "2026-10-03T16:41:56.020530+00:00",
+    "ok": true,
+    "total_elapsed_s": 2.571,
+    "failed_stage": "",
+    "error": "",
+    "carried_over_reviews": 0,
+    "orphaned_reviews": 6,
+    "stages": [
+      {
+        "name": "load_data",
+        "rows": 1020,
+        "elapsed_s": 0.005,
+        "detail": "Loaded 1020 invoices, 980 ledger, 980 GST rows",
+        "error": ""
+      },
+      {
+        "name": "reconciliation",
+        "rows": 1020,
+        "elapsed_s": 1.375,
+        "detail": "Reconciled 1020 rows; flagged 140",
+        "error": ""
+      },
+      {
+        "name": "investigation_cases",
+        "rows": 120,
+        "elapsed_s": 0.059,
+        "detail": "Created 120 investigation cases",
+        "error": ""
+      },
+      {
+        "name": "anomaly_detection",
+        "rows": 1020,
+        "elapsed_s": 0.689,
+        "detail": "Scored 1020 transactions; 51 ML anomalies",
+        "error": ""
+      },
+      {
+        "name": "merge_intelligence",
+        "rows": 120,
+        "elapsed_s": 0.005,
+        "detail": "Enriched 120 cases with anomaly signals",
+        "error": ""
+      },
+      {
+        "name": "pattern_intelligence",
+        "rows": 7,
+        "elapsed_s": 0.057,
+        "detail": "Detected 7 patterns across 125 memberships",
+        "error": ""
+      },
+      {
+        "name": "root_cause_analysis",
+        "rows": 120,
+        "elapsed_s": 0.048,
+        "detail": "Root-cause explanations for 120 cases",
+        "error": ""
+      },
+      {
+        "name": "gst_rag_enrichment",
+        "rows": 120,
+        "elapsed_s": 0.235,
+        "detail": "RAG-enriched 120 cases with GST context",
+        "error": ""
+      },
+      {
+        "name": "review_carryover",
+        "rows": 0,
+        "elapsed_s": 0.028,
+        "detail": "Re-applied 0 stored review decision(s); 6 orphaned decision(s) retained",
+        "error": ""
+      },
+      {
+        "name": "feedback_ranking",
+        "rows": 0,
+        "elapsed_s": 0.067,
+        "detail": "Stage-A priors applied to 0 case(s); ranked by base score + capped feedback adjustment",
+        "error": ""
+      }
+    ]
   }
 ]
