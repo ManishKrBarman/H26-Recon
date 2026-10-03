@@ -120,33 +120,41 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid stats fade-in">
+        <div className="card">
+          <div className="stat-label">Invoices Analyzed</div>
+          <div className="stat">{d.processed_transactions ?? totalCases}</div>
+          <div className="stat-change" style={{ color: 'var(--success, #16a34a)', fontWeight: 500 }}>
+            {d.clean_transactions ?? 0} clean ({d.clean_rate ?? 100}%)
+          </div>
+        </div>
         <div className="card card-glow">
-          <div className="stat-label">Total cases</div>
+          <div className="stat-label">Flagged Exceptions</div>
           <div className="stat">{totalCases}</div>
           <div className="bar bar-brand" style={{ marginTop: 8 }}>
             <i style={{ width: '100%' }} />
           </div>
         </div>
         <div className="card">
-          <div className="stat-label">Open</div>
+          <div className="stat-label">Pending Review</div>
           <div className="stat">{core.open_cases || 0}</div>
           <div className="bar bar-brand" style={{ marginTop: 8 }}>
             <i style={{ width: totalCases ? `${((core.open_cases || 0) / totalCases) * 100}%` : '0%' }} />
           </div>
         </div>
         <div className="card">
-          <div className="stat-label">Critical + High</div>
+          <div className="stat-label">Critical / High</div>
           <div className="stat">{(core.critical_priority || 0) + (core.high_priority || 0)}</div>
           <div className="bar bar-danger" style={{ marginTop: 8 }}>
             <i style={{ width: totalCases ? `${(((core.critical_priority || 0) + (core.high_priority || 0)) / totalCases) * 100}%` : '0%' }} />
           </div>
         </div>
         <div className="card">
-          <div className="stat-label">Financial exposure</div>
+          <div className="stat-label">Financial Exposure</div>
           <div className="stat">{formatMoney(core.total_exposure)}</div>
-          <div className="stat-change">{totalCases} discrepancies tracked</div>
+          <div className="stat-change">{totalCases} exceptions tracked</div>
         </div>
       </div>
+
 
       {/* Issue + Decisions + Priority */}
       <div className="grid two" style={{ marginTop: 16 }}>

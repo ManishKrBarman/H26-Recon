@@ -138,13 +138,32 @@ def dashboard() -> dict:
         severity = conn.execute(
             "SELECT severity, COUNT(*) AS count FROM investigation_cases_rag GROUP BY severity ORDER BY count DESC"
         ).fetchall()
+
+    # Track total processed vs clean
+    total_invoices = 0
+    inv_path = DATA_DIR / "invoices.csv"
+    if inv_path.exists():
+        try:
+            import pandas as pd
+            total_invoices = len(pd.read_csv(inv_path))
+        except Exception:
+            pass
+
+    total_c = cases["total"] if cases else 0
+    clean_c = max(0, total_invoices - total_c)
+    clean_rate = round((clean_c / max(1, total_invoices)) * 100, 1)
+
     return {
         "cases": dict(cases) if cases else {},
+        "processed_transactions": total_invoices,
+        "clean_transactions": clean_c,
+        "clean_rate": clean_rate,
         "issue_breakdown": [dict(r) for r in types],
         "review_breakdown": [dict(r) for r in decisions],
         "top_vendors": [dict(r) for r in vendors],
         "severity_breakdown": [dict(r) for r in severity],
     }
+
 
 
 # ── Cases ─────────────────────────────────────────────────────────────
