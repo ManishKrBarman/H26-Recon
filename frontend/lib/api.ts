@@ -1,6 +1,6 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL !== undefined
-    ? process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/+$/, '')
     : 'http://127.0.0.1:8000';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
