@@ -8,7 +8,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -326,3 +326,98 @@ def metrics() -> dict:
     import pandas as pd
     df = pd.read_csv(metrics_path)
     return {"available": True, "metrics": df.to_dict(orient="records")}
+
+
+# ── Data upload ───────────────────────────────────────────────────────
+
+@app.post("/api/upload")
+async def upload_data(
+    invoices: UploadFile = File(...),
+    ledger: UploadFile = File(...),
+    gst: UploadFile = File(...),
+) -> dict:
+    """Upload user CSV files (invoices, ledger, GST) and run the pipeline."""
+    import pandas as pd
+    data_dir = ROOT / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    saved = {}
+    for name, f in [("invoices", invoices), ("ledger", ledger), ("gst_records", gst)]:
+        content = await f.read()
+        try:
+            df = pd.read_csv(io.BytesIO(content))
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail=f"Could not parse {name} CSV: {exc}")
+        path = data_dir / f"{name}.csv"
+        df.to_csv(path, index=False)
+        saved[name] = {"rows": len(df), "columns": list(df.columns)}
+
+    # Run the pipeline on the uploaded data
+    from .pipeline import run_pipeline
+    result = run_pipeline(data_dir)
+    return {
+        "uploaded": saved,
+        "pipeline": {
+            "ok": result.ok,
+            "total_elapsed_s": result.total_elapsed_s,
+            "error": result.error,
+            "stages": [
+                {"name": s.name, "rows": s.rows, "elapsed_s": s.elapsed_s, "detail": s.detail}
+                for s in result.stages
+            ],
+        },
+    }
+
+
+@app.post("/api/score")
+async def score_new_data(invoices: UploadFile = File(...)) -> dict:
+    """Score new invoices against the saved anomaly model (no retraining)."""
+    import pandas as pd
+    from .anomaly import score as anomaly_score, load_model
+
+    content = await invoices.read()
+    try:
+        df = pd.read_csv(io.BytesIO(content))
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Could not parse CSV: {exc}")
+
+    loaded = load_model()
+    if loaded is None:
+        raise HTTPException(status_code=400, detail="No trained model found. Run the pipeline first to train the anomaly model.")
+
+    try:
+        results = anomaly_score(df)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Scoring failed: {exc}")
+
+    anomalies = results[results["ml_anomaly"] == True]
+    return {
+        "total_scored": len(results),
+        "anomalies_found": len(anomalies),
+        "results": results.to_dict(orient="records"),
+    }
+
+
+# ── Model info ────────────────────────────────────────────────────────
+
+@app.get("/api/models")
+def model_info() -> dict:
+    """Show what trained model artifacts exist."""
+    import os
+    models_dir = ROOT / "models"
+    artifacts = []
+    if models_dir.exists():
+        for f in sorted(models_dir.iterdir()):
+            if f.suffix == ".joblib":
+                stat = f.stat()
+                artifacts.append({
+                    "name": f.name,
+                    "size_kb": round(stat.st_size / 1024, 1),
+                    "modified": stat.st_mtime,
+                })
+    return {
+        "model_dir": str(models_dir),
+        "artifacts": artifacts,
+        "has_anomaly_model": (models_dir / "anomaly_model.joblib").exists(),
+        "has_rag_retriever": (models_dir / "rag_vectorizer.joblib").exists(),
+    }
