@@ -3,8 +3,10 @@ import sqlite3
 from pathlib import Path
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[2]
-DB = ROOT / 'data' / 'reconai.db'
+from . import config
+
+ROOT = config.ROOT
+DB = config.DB_PATH
 
 
 def build_feedback_dataset(db: Path = DB) -> pd.DataFrame:

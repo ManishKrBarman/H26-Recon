@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import json
 import sqlite3
+import traceback
+from contextlib import asynccontextmanager
 from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
@@ -13,24 +16,46 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from .human_review import record_decision, init_review_tables
+from . import config
+from .human_review import record_decision, init_review_tables, reapply_decisions
+from .pipeline import RUN_STATE, PipelineLocked
 
-import os
 
-ROOT = Path(__file__).resolve().parents[2]
-DATA_DIR = Path(os.environ.get("RECON_DATA_DIR", str(ROOT / "data")))
-MODELS_DIR = Path(os.environ.get("RECON_MODELS_DIR", str(ROOT / "models")))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-MODELS_DIR.mkdir(parents=True, exist_ok=True)
-DB = DATA_DIR / "reconai.db"
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Bootstrap: ensure tables exist; run the pipeline only when truly fresh."""
+    config.reconfigure()
+    config.ensure_dirs()
+    DB = config.DB_PATH
+    try:
+        init_review_tables(DB)
+        with sqlite3.connect(DB) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='investigation_cases_rag'")
+            has_cases = cur.fetchone() is not None
+            row_count = 0
+            if has_cases:
+                row_count = conn.execute("SELECT COUNT(*) FROM investigation_cases_rag").fetchone()[0]
+        if not has_cases or row_count == 0:
+            print("[ReconAI Startup] Fresh deployment detected. Initializing database and models...")
+            from .pipeline import run_pipeline
+            res = run_pipeline()
+            print(f"[ReconAI Startup] Initial pipeline finished: ok={res.ok}")
+    except Exception as e:
+        print(f"[ReconAI Startup] Note during initialization: {e}")
+    yield
+
 
 app = FastAPI(
     title="ReconAI API",
-    version="1.0.0",
+    version="1.1.0",
     description="API for ReconAI's reconciliation, investigation, pattern intelligence and human review workflow.",
+    lifespan=lifespan,
 )
 
 # Configurable CORS for production deployment
+import os
+
 cors_origins_env = os.environ.get(
     "CORS_ORIGINS",
     "http://localhost:3000,http://127.0.0.1:3000,http://localhost:80,http://localhost,http://127.0.0.1"
@@ -50,25 +75,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Background pipeline task ─────────────────────────────────────────
 
-@app.on_event("startup")
-def ensure_db_initialized():
-    """Ensure database has tables and initial demo data if starting fresh in a new environment."""
+_pipeline_task: Optional[asyncio.Task] = None
+
+
+def _run_pipeline_blocking(data_dir: Path) -> dict:
+    from .pipeline import run_pipeline
+    result = run_pipeline(data_dir)
+    payload = result.to_dict()
+    return payload
+
+
+async def _pipeline_job(data_dir: Path) -> None:
+    global _pipeline_task
     try:
-        init_review_tables(DB)
-        with sqlite3.connect(DB) as conn:
-            cur = conn.cursor()
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cases'")
-            has_cases = cur.fetchone() is not None
-            if not has_cases:
-                # Fresh deployment - run initial pipeline run once
-                print("[ReconAI Startup] Fresh deployment detected. Initializing database and models...")
-                from .pipeline import run_pipeline
-                res = run_pipeline(DATA_DIR)
-                print(f"[ReconAI Startup] Initial pipeline finished: ok={res.ok}")
-    except Exception as e:
-        print(f"[ReconAI Startup] Note during initialization: {e}")
-
+        await asyncio.to_thread(_run_pipeline_blocking, data_dir)
+    except PipelineLocked as exc:
+        RUN_STATE.update({"state": "blocked", "error": str(exc), "finished_at": None})
+    except Exception as exc:
+        RUN_STATE.update({
+            "state": "failed", "error": f"{type(exc).__name__}: {exc}",
+            "failed_stage": RUN_STATE.get("failed_stage") or "unknown",
+            "finished_at": None,
+        })
+        traceback.print_exc()
 
 
 class ReviewRequest(BaseModel):
@@ -78,8 +109,9 @@ class ReviewRequest(BaseModel):
 
 
 def _connect() -> sqlite3.Connection:
+    DB = config.DB_PATH
     init_review_tables(DB)
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -129,9 +161,9 @@ def dashboard() -> dict:
         ).fetchall()
         # Top vendors by exposure
         vendors = conn.execute(
-            """SELECT vendor_code, COUNT(*) AS case_count, 
+            """SELECT vendor_code, COUNT(*) AS case_count,
                       COALESCE(SUM(financial_exposure), 0) AS total_exposure
-               FROM investigation_cases_rag 
+               FROM investigation_cases_rag
                GROUP BY vendor_code ORDER BY total_exposure DESC LIMIT 10"""
         ).fetchall()
         # Severity distribution
@@ -194,7 +226,7 @@ def get_case(case_id: str) -> dict:
 @app.post("/api/cases/{case_id}/review")
 def review_case(case_id: str, payload: ReviewRequest) -> dict:
     try:
-        return record_decision(case_id, payload.decision, payload.reviewer, payload.notes, DB)
+        return record_decision(case_id, payload.decision, payload.reviewer, payload.notes, config.DB_PATH)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
@@ -242,7 +274,7 @@ def get_pattern(pattern_id: str) -> dict:
 @app.get("/api/vendors")
 def list_vendors(limit: int = Query(50, ge=1, le=200)) -> dict:
     vendors = _rows(
-        """SELECT v.*, 
+        """SELECT v.*,
                   (SELECT COUNT(*) FROM investigation_cases_rag c WHERE c.vendor_code = v.vendor_code) AS case_count,
                   (SELECT COALESCE(SUM(financial_exposure), 0) FROM investigation_cases_rag c WHERE c.vendor_code = v.vendor_code) AS total_exposure
            FROM vendors v ORDER BY total_exposure DESC LIMIT ?""",
@@ -268,7 +300,7 @@ def vendor_profile(vendor_code: str) -> dict:
 @app.get("/api/rules/search")
 def search_rules(q: str = Query(..., min_length=2), limit: int = Query(5, ge=1, le=20)) -> dict:
     # Lightweight lexical search over the traceable local knowledge base.
-    kb_path = ROOT / "data" / "gst_knowledge_base.json"
+    kb_path = config.KB_PATH
     if not kb_path.exists():
         return {"query": q, "items": []}
     kb = json.loads(kb_path.read_text(encoding="utf-8"))
@@ -286,29 +318,51 @@ def search_rules(q: str = Query(..., min_length=2), limit: int = Query(5, ge=1, 
 # ── Pipeline orchestration ────────────────────────────────────────────
 
 @app.post("/api/pipeline/run")
-def run_pipeline_endpoint() -> dict:
-    """Run the full ReconAI processing pipeline end-to-end."""
-    from .pipeline import run_pipeline
-    result = run_pipeline()
-    return {
-        "ok": result.ok,
-        "total_elapsed_s": result.total_elapsed_s,
-        "error": result.error,
-        "stages": [
-            {"name": s.name, "rows": s.rows, "elapsed_s": s.elapsed_s, "detail": s.detail}
-            for s in result.stages
-        ],
-    }
+async def run_pipeline_endpoint() -> dict:
+    """Start the full pipeline as a background job; poll /api/pipeline/status."""
+    global _pipeline_task
+    if RUN_STATE.get("state") == "running" and _pipeline_task and not _pipeline_task.done():
+        raise HTTPException(status_code=409, detail="Pipeline is already running")
+    from .pipeline import acquire_lock, PipelineLocked as PL, release_lock
+    from . import config as _cfg
+    lock_path = _cfg.PIPELINE_LOCK_PATH
+    try:
+        acquire_lock(lock_path)
+        release_lock(lock_path)
+    except PL as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    _pipeline_task = asyncio.create_task(_pipeline_job(config.DATA_DIR))
+    return {"started": True, "state": RUN_STATE.get("state"), "status_url": "/api/pipeline/status"}
 
 
 @app.get("/api/pipeline/status")
 def pipeline_status() -> dict:
-    """Check if the DB has been populated."""
+    """Live pipeline state: idle/running/ok/failed plus per-stage progress."""
+    populated = False
+    total_cases = 0
     try:
         total = _one("SELECT COUNT(*) AS total FROM investigation_cases_rag")
-        return {"populated": bool(total and total["total"] > 0), "total_cases": total["total"] if total else 0}
+        populated = bool(total and total["total"] > 0)
+        total_cases = total["total"] if total else 0
     except Exception:
-        return {"populated": False, "total_cases": 0}
+        pass
+    state = dict(RUN_STATE)
+    state["populated"] = populated
+    state["total_cases"] = total_cases
+    state["task_done"] = bool(_pipeline_task.done()) if _pipeline_task else None
+    return state
+
+
+@app.get("/api/pipeline/runs")
+def pipeline_runs() -> dict:
+    """Recent run history (last 50 runs, newest last)."""
+    history_path = config.DATA_DIR / "pipeline_runs.json"
+    if not history_path.exists():
+        return {"runs": []}
+    try:
+        return {"runs": json.loads(history_path.read_text())}
+    except Exception:
+        return {"runs": []}
 
 
 # ── Export ────────────────────────────────────────────────────────────
@@ -357,54 +411,71 @@ def export_audit() -> StreamingResponse:
 # ── Metrics ───────────────────────────────────────────────────────────
 
 @app.get("/api/metrics")
-def metrics() -> dict:
-    """Return evaluation metrics if available."""
-    metrics_path = ROOT / "data" / "reconciliation_metrics.csv"
-    if not metrics_path.exists():
-        return {"available": False, "metrics": []}
-    import pandas as pd
-    df = pd.read_csv(metrics_path)
-    return {"available": True, "metrics": df.to_dict(orient="records")}
+def metrics(refresh: bool = Query(False, description="Re-run evaluation before returning")) -> dict:
+    """Fresh evaluation metrics from the current dataset (never a stale CSV)."""
+    from .evaluate import evaluate, has_ground_truth
+    if not has_ground_truth(config.DATA_DIR):
+        return {"available": False, "reason": "no ground_truth.csv for the current dataset; run the demo generator or upload labels", "metrics": []}
+    try:
+        df = evaluate(data_dir=config.DATA_DIR, refresh=refresh)
+        return {"available": True, "metrics": df.to_dict(orient="records")}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Evaluation failed: {exc}") from exc
 
 
 # ── Data upload ───────────────────────────────────────────────────────
+
+@app.post("/api/upload/preview")
+async def upload_preview(invoices: UploadFile = File(...), ledger: UploadFile = File(...), gst: UploadFile = File(...)) -> dict:
+    """Validate and map uploaded CSVs without touching live data."""
+    from .ingest import ingest_bundle
+    payloads = {"invoices": await invoices.read(), "ledger": await ledger.read(), "gst_records": await gst.read()}
+    bundle = ingest_bundle(payloads)
+    preview = bundle.preview()
+    return {"ok": preview["ok"], **preview}
+
 
 @app.post("/api/upload")
 async def upload_data(
     invoices: UploadFile = File(...),
     ledger: UploadFile = File(...),
     gst: UploadFile = File(...),
+    vendors: Optional[UploadFile] = File(None),
+    run: bool = Query(True, description="Run the pipeline after a successful upload"),
 ) -> dict:
-    """Upload user CSV files (invoices, ledger, GST) and run the pipeline."""
-    import pandas as pd
-    data_dir = ROOT / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
+    """Upload user CSV files, validate + map them, back up old files, then run the pipeline in the background.
 
-    saved = {}
-    for name, f in [("invoices", invoices), ("ledger", ledger), ("gst_records", gst)]:
-        content = await f.read()
-        try:
-            df = pd.read_csv(io.BytesIO(content))
-        except Exception as exc:
-            raise HTTPException(status_code=422, detail=f"Could not parse {name} CSV: {exc}")
-        path = data_dir / f"{name}.csv"
-        df.to_csv(path, index=False)
-        saved[name] = {"rows": len(df), "columns": list(df.columns)}
+    Live data is never overwritten unless every file validates. On validation
+    failure the response lists per-source errors/rejections and nothing changes.
+    """
+    from .ingest import ingest_bundle, write_bundle
+    payloads = {"invoices": await invoices.read(), "ledger": await ledger.read(), "gst_records": await gst.read()}
+    if vendors is not None and vendors.filename:
+        payloads["vendors"] = await vendors.read()
 
-    # Run the pipeline on the uploaded data
-    from .pipeline import run_pipeline
-    result = run_pipeline(data_dir)
+    bundle = ingest_bundle(payloads)
+    preview = bundle.preview()
+    if not bundle.ok:
+        raise HTTPException(status_code=422, detail={"message": "Upload rejected; live data untouched", **preview})
+
+    try:
+        backup_dir = write_bundle(bundle, config.DATA_DIR, backup=True)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to write uploaded data: {exc}") from exc
+
+    pipeline_started = False
+    if run:
+        global _pipeline_task
+        if not (RUN_STATE.get("state") == "running" and _pipeline_task and not _pipeline_task.done()):
+            _pipeline_task = asyncio.create_task(_pipeline_job(config.DATA_DIR))
+            pipeline_started = True
+
     return {
-        "uploaded": saved,
-        "pipeline": {
-            "ok": result.ok,
-            "total_elapsed_s": result.total_elapsed_s,
-            "error": result.error,
-            "stages": [
-                {"name": s.name, "rows": s.rows, "elapsed_s": s.elapsed_s, "detail": s.detail}
-                for s in result.stages
-            ],
-        },
+        "uploaded": {name: {"rows": src.rows_out, "columns_mapped": src.mapping, "rejected": len(src.rejected)} for name, src in bundle.sources.items()},
+        "preview": preview,
+        "backup_dir": str(backup_dir) if backup_dir else None,
+        "pipeline_started": pipeline_started,
+        "status_url": "/api/pipeline/status",
     }
 
 
@@ -418,7 +489,7 @@ async def score_new_data(invoices: UploadFile = File(...)) -> dict:
     try:
         df = pd.read_csv(io.BytesIO(content))
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Could not parse CSV: {exc}")
+        raise HTTPException(status_code=422, detail=f"Could not parse CSV: {exc}") from exc
 
     loaded = load_model()
     if loaded is None:
@@ -427,7 +498,7 @@ async def score_new_data(invoices: UploadFile = File(...)) -> dict:
     try:
         results = anomaly_score(df)
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Scoring failed: {exc}")
+        raise HTTPException(status_code=422, detail=f"Scoring failed: {exc}") from exc
 
     anomalies = results[results["ml_anomaly"] == True]
     return {
@@ -442,10 +513,9 @@ async def score_new_data(invoices: UploadFile = File(...)) -> dict:
 @app.get("/api/models")
 def model_info() -> dict:
     """Show what trained model artifacts exist."""
-    models_dir = MODELS_DIR
     artifacts = []
-    if models_dir.exists():
-        for f in sorted(models_dir.iterdir()):
+    if config.MODELS_DIR.exists():
+        for f in sorted(config.MODELS_DIR.iterdir()):
             if f.suffix == ".joblib":
                 stat = f.stat()
                 artifacts.append({
@@ -454,8 +524,8 @@ def model_info() -> dict:
                     "modified": stat.st_mtime,
                 })
     return {
-        "model_dir": str(models_dir),
+        "model_dir": str(config.MODELS_DIR),
         "artifacts": artifacts,
-        "has_anomaly_model": (models_dir / "anomaly_model.joblib").exists(),
-        "has_rag_retriever": (models_dir / "rag_vectorizer.joblib").exists(),
+        "has_anomaly_model": (config.MODELS_DIR / "anomaly_model.joblib").exists(),
+        "has_rag_retriever": (config.MODELS_DIR / "rag_vectorizer.joblib").exists(),
     }

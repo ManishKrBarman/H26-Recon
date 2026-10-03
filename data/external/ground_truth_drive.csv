@@ -1,0 +1,121 @@
+invoice_id,discrepancy_type,affected_table,description
+INV-000704,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000099,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000091,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000450,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000562,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000698,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000081,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000277,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000807,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000935,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000152,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000747,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000894,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000404,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000426,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000741,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000373,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000719,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000695,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000141,duplicate_invoice,invoices,Near-identical invoice intentionally duplicated.
+INV-000643,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000040,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000848,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000171,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000023,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000154,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000294,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000986,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000642,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000366,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000959,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000454,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000266,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000260,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000055,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000712,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000157,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000740,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000904,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000457,missing_ledger,ledger,Ledger entry intentionally removed.
+INV-000567,missing_gst,gst,GST record intentionally removed.
+INV-000228,missing_gst,gst,GST record intentionally removed.
+INV-000350,missing_gst,gst,GST record intentionally removed.
+INV-000478,missing_gst,gst,GST record intentionally removed.
+INV-000683,missing_gst,gst,GST record intentionally removed.
+INV-000227,missing_gst,gst,GST record intentionally removed.
+INV-000212,missing_gst,gst,GST record intentionally removed.
+INV-000218,missing_gst,gst,GST record intentionally removed.
+INV-000248,missing_gst,gst,GST record intentionally removed.
+INV-000341,missing_gst,gst,GST record intentionally removed.
+INV-000321,missing_gst,gst,GST record intentionally removed.
+INV-000815,missing_gst,gst,GST record intentionally removed.
+INV-000119,missing_gst,gst,GST record intentionally removed.
+INV-000054,missing_gst,gst,GST record intentionally removed.
+INV-000659,missing_gst,gst,GST record intentionally removed.
+INV-000742,missing_gst,gst,GST record intentionally removed.
+INV-000795,missing_gst,gst,GST record intentionally removed.
+INV-000365,missing_gst,gst,GST record intentionally removed.
+INV-000163,missing_gst,gst,GST record intentionally removed.
+INV-000850,missing_gst,gst,GST record intentionally removed.
+INV-000636,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000380,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000310,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000170,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000773,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000866,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000859,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000195,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000653,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000591,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000202,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000803,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000167,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000662,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000547,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000219,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000008,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000204,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000596,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000399,amount_mismatch,ledger,Ledger taxable amount intentionally altered by 8%.
+INV-000239,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000325,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000261,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000220,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000160,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000758,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000577,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000120,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000086,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000183,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000817,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000429,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000016,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000816,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000693,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000749,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000476,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000733,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000145,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000581,tax_mismatch,gst,GST tax amount intentionally altered by 10%.
+INV-000418,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000492,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000043,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000652,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000444,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000837,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000486,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000097,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000427,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000801,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000926,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000155,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000258,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000910,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000374,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000849,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000780,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000823,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000456,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
+INV-000941,date_mismatch,ledger,Ledger date intentionally shifted by 15 days.
