@@ -1,0 +1,55 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: reconai-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost
+      - RECON_DATA_DIR=/app/data
+      - RECON_MODELS_DIR=/app/models
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+    networks:
+      - reconai-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    container_name: reconai-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - reconai-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  reconai-net:
+    driver: bridge

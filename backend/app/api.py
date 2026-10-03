@@ -15,21 +15,60 @@ from pydantic import BaseModel, Field
 
 from .human_review import record_decision, init_review_tables
 
+import os
+
 ROOT = Path(__file__).resolve().parents[2]
-DB = ROOT / "data" / "reconai.db"
+DATA_DIR = Path(os.environ.get("RECON_DATA_DIR", str(ROOT / "data")))
+MODELS_DIR = Path(os.environ.get("RECON_MODELS_DIR", str(ROOT / "models")))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
+DB = DATA_DIR / "reconai.db"
 
 app = FastAPI(
     title="ReconAI API",
     version="1.0.0",
     description="API for ReconAI's reconciliation, investigation, pattern intelligence and human review workflow.",
 )
+
+# Configurable CORS for production deployment
+cors_origins_env = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://localhost:80,http://localhost,http://127.0.0.1"
+)
+if cors_origins_env.strip() == "*":
+    allow_origins = ["*"]
+    allow_credentials = False
+else:
+    allow_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+    allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_credentials=True,
+    allow_origins=allow_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def ensure_db_initialized():
+    """Ensure database has tables and initial demo data if starting fresh in a new environment."""
+    try:
+        init_review_tables(DB)
+        with sqlite3.connect(DB) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cases'")
+            has_cases = cur.fetchone() is not None
+            if not has_cases:
+                # Fresh deployment - run initial pipeline run once
+                print("[ReconAI Startup] Fresh deployment detected. Initializing database and models...")
+                from .pipeline import run_pipeline
+                res = run_pipeline(DATA_DIR)
+                print(f"[ReconAI Startup] Initial pipeline finished: ok={res.ok}")
+    except Exception as e:
+        print(f"[ReconAI Startup] Note during initialization: {e}")
+
 
 
 class ReviewRequest(BaseModel):
@@ -403,8 +442,7 @@ async def score_new_data(invoices: UploadFile = File(...)) -> dict:
 @app.get("/api/models")
 def model_info() -> dict:
     """Show what trained model artifacts exist."""
-    import os
-    models_dir = ROOT / "models"
+    models_dir = MODELS_DIR
     artifacts = []
     if models_dir.exists():
         for f in sorted(models_dir.iterdir()):

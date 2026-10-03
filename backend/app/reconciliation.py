@@ -228,10 +228,20 @@ def reconcile(invoices: pd.DataFrame, ledger: pd.DataFrame, gst: pd.DataFrame) -
 
 
 def load_data(data_dir: Path = DATA) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    data_dir.mkdir(parents=True, exist_ok=True)
+    inv_path = data_dir / "invoices.csv"
+    led_path = data_dir / "ledger.csv"
+    gst_path = data_dir / "gst_records.csv"
+
+    # If data files are missing (e.g. fresh clone / fresh Docker container), generate initial demo dataset
+    if not (inv_path.exists() and led_path.exists() and gst_path.exists()):
+        from .generate_data import generate
+        generate(100, seed=42)
+
     return (
-        pd.read_csv(data_dir / "invoices.csv"),
-        pd.read_csv(data_dir / "ledger.csv"),
-        pd.read_csv(data_dir / "gst_records.csv"),
+        pd.read_csv(inv_path),
+        pd.read_csv(led_path),
+        pd.read_csv(gst_path),
     )
 
 

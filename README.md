@@ -266,6 +266,36 @@ This executes all 9 stages (~7 seconds) and populates the database. The dashboar
 
 ---
 
+## Deployment
+
+ReconAI is fully containerized and production-ready for deployment on any cloud VPS (AWS, GCP, DigitalOcean, Hetzner), PaaS, or bare-metal Linux server.
+
+### 1-Command Deployment with Docker Compose
+
+```bash
+# Clone and launch all services with volume persistence
+git clone https://github.com/ManishKrBarman/H26-Recon.git
+cd Recon
+docker compose up -d --build
+```
+
+- **Frontend**: `http://<your-server-ip>:3000`
+- **Backend API & Swagger Docs**: `http://<your-server-ip>:8000/docs`
+
+The SQLite database and trained ML models are persisted in `./data` and `./models`. On a fresh clone, the backend automatically initializes demo data and runs the pipeline on first boot.
+
+### Single-Domain Production with Nginx & SSL
+
+For unified single-domain deployment with SSL on ports 80/443 and 100MB file upload limits:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+👉 **For the complete production runbook, see [DEPLOYMENT.md](DEPLOYMENT.md)** covering Let's Encrypt SSL, automated database backups, systemd service units, and cloud deployment on Vercel + Render/Railway.
+
+---
+
 ## Evaluation
 
 The system can be evaluated against the synthetic ground truth:

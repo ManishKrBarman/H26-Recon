@@ -1,0 +1,19 @@
+[Unit]
+Description=ReconAI FastAPI Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/reconai/backend
+Environment="PATH=/var/www/reconai/backend/.venv/bin:/usr/local/bin:/usr/bin"
+Environment="PORT=8000"
+Environment="HOST=127.0.0.1"
+Environment="CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,https://recon.yourdomain.com"
+ExecStart=/var/www/reconai/backend/.venv/bin/uvicorn app.api:app --host 127.0.0.1 --port 8000 --workers 4
+Restart=always
+RestartSec=5
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
