@@ -66,48 +66,48 @@
     "per_issue": [
       {
         "discrepancy_type": "amount_mismatch",
-        "true_positive": 18,
+        "true_positive": 17,
         "false_positive": 0,
-        "false_negative": 2,
+        "false_negative": 3,
         "precision": 1.0,
-        "recall": 0.9,
-        "f1": 0.9474
+        "recall": 0.85,
+        "f1": 0.9189
       },
       {
         "discrepancy_type": "date_mismatch",
-        "true_positive": 19,
+        "true_positive": 20,
         "false_positive": 0,
-        "false_negative": 1,
+        "false_negative": 0,
         "precision": 1.0,
-        "recall": 0.95,
-        "f1": 0.9744
+        "recall": 1.0,
+        "f1": 1.0
       },
       {
         "discrepancy_type": "duplicate_invoice",
         "true_positive": 20,
-        "false_positive": 20,
+        "false_positive": 3,
         "false_negative": 0,
-        "precision": 0.5,
+        "precision": 0.8696,
         "recall": 1.0,
-        "f1": 0.6667
+        "f1": 0.9302
       },
       {
         "discrepancy_type": "missing_gst",
         "true_positive": 20,
-        "false_positive": 36,
+        "false_positive": 0,
         "false_negative": 0,
-        "precision": 0.3571,
+        "precision": 1.0,
         "recall": 1.0,
-        "f1": 0.5263
+        "f1": 1.0
       },
       {
         "discrepancy_type": "missing_ledger",
         "true_positive": 20,
-        "false_positive": 37,
+        "false_positive": 3,
         "false_negative": 0,
-        "precision": 0.3509,
+        "precision": 0.8696,
         "recall": 1.0,
-        "f1": 0.5195
+        "f1": 0.9302
       },
       {
         "discrepancy_type": "tax_mismatch",
@@ -119,26 +119,23 @@
         "f1": 0.9474
       }
     ],
-    "macro_f1": 0.7636,
+    "macro_f1": 0.9545,
     "ml_anomaly": {
       "flagged_rows": 51,
-      "flagged_injected": 7,
-      "precision_vs_injected": 0.1373
+      "flagged_injected": 10,
+      "precision_vs_injected": 0.1961
     },
     "pattern_recall": 1.0,
-    "n_pattern_recurrences_gt": 2,
-    "n_patterns_detected": 15
+    "n_pattern_recurrences_gt": 6,
+    "n_patterns_detected": 6
   },
   "negative_control": {
     "mode": "negative_control",
     "n_invoices": 1000,
-    "flagged_rows": 69,
-    "flagged_invoices": 69,
-    "false_positive_rate_rows": 0.069,
-    "false_positive_rate_invoices": 0.069,
-    "by_issue": {
-      "missing_gst": 36,
-      "missing_ledger": 35
-    }
+    "flagged_rows": 0,
+    "flagged_invoices": 0,
+    "false_positive_rate_rows": 0.0,
+    "false_positive_rate_invoices": 0.0,
+    "by_issue": {}
   }
 }

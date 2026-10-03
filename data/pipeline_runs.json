@@ -347,5 +347,185 @@
         "error": ""
       }
     ]
+  },
+  {
+    "finished_at": "2026-10-03T16:30:41.594573+00:00",
+    "ok": false,
+    "total_elapsed_s": 0.639,
+    "failed_stage": "pattern_intelligence",
+    "error": "OperationalError: near \")\": syntax error",
+    "carried_over_reviews": 0,
+    "orphaned_reviews": 0,
+    "stages": [
+      {
+        "name": "load_data",
+        "rows": 102,
+        "elapsed_s": 0.003,
+        "detail": "Loaded 102 invoices, 98 ledger, 98 GST rows",
+        "error": ""
+      },
+      {
+        "name": "reconciliation",
+        "rows": 102,
+        "elapsed_s": 0.11,
+        "detail": "Reconciled 102 rows; flagged 14",
+        "error": ""
+      },
+      {
+        "name": "investigation_cases",
+        "rows": 12,
+        "elapsed_s": 0.028,
+        "detail": "Created 12 investigation cases",
+        "error": ""
+      },
+      {
+        "name": "anomaly_detection",
+        "rows": 102,
+        "elapsed_s": 0.488,
+        "detail": "Scored 102 transactions; 6 ML anomalies",
+        "error": ""
+      },
+      {
+        "name": "merge_intelligence",
+        "rows": 12,
+        "elapsed_s": 0.004,
+        "detail": "Enriched 12 cases with anomaly signals",
+        "error": ""
+      },
+      {
+        "name": "pattern_intelligence",
+        "rows": 0,
+        "elapsed_s": 0.006,
+        "detail": "",
+        "error": "OperationalError: near \")\": syntax error"
+      }
+    ]
+  },
+  {
+    "finished_at": "2026-10-03T16:31:10.933128+00:00",
+    "ok": false,
+    "total_elapsed_s": 0.739,
+    "failed_stage": "pattern_intelligence",
+    "error": "OperationalError: near \")\": syntax error",
+    "carried_over_reviews": 0,
+    "orphaned_reviews": 0,
+    "stages": [
+      {
+        "name": "load_data",
+        "rows": 102,
+        "elapsed_s": 0.003,
+        "detail": "Loaded 102 invoices, 98 ledger, 98 GST rows",
+        "error": ""
+      },
+      {
+        "name": "reconciliation",
+        "rows": 102,
+        "elapsed_s": 0.113,
+        "detail": "Reconciled 102 rows; flagged 14",
+        "error": ""
+      },
+      {
+        "name": "investigation_cases",
+        "rows": 12,
+        "elapsed_s": 0.031,
+        "detail": "Created 12 investigation cases",
+        "error": ""
+      },
+      {
+        "name": "anomaly_detection",
+        "rows": 102,
+        "elapsed_s": 0.583,
+        "detail": "Scored 102 transactions; 6 ML anomalies",
+        "error": ""
+      },
+      {
+        "name": "merge_intelligence",
+        "rows": 12,
+        "elapsed_s": 0.004,
+        "detail": "Enriched 12 cases with anomaly signals",
+        "error": ""
+      },
+      {
+        "name": "pattern_intelligence",
+        "rows": 0,
+        "elapsed_s": 0.005,
+        "detail": "",
+        "error": "OperationalError: near \")\": syntax error"
+      }
+    ]
+  },
+  {
+    "finished_at": "2026-10-03T16:32:15.231157+00:00",
+    "ok": true,
+    "total_elapsed_s": 0.904,
+    "failed_stage": "",
+    "error": "",
+    "carried_over_reviews": 0,
+    "orphaned_reviews": 2,
+    "stages": [
+      {
+        "name": "load_data",
+        "rows": 102,
+        "elapsed_s": 0.003,
+        "detail": "Loaded 102 invoices, 98 ledger, 98 GST rows",
+        "error": ""
+      },
+      {
+        "name": "reconciliation",
+        "rows": 102,
+        "elapsed_s": 0.125,
+        "detail": "Reconciled 102 rows; flagged 14",
+        "error": ""
+      },
+      {
+        "name": "investigation_cases",
+        "rows": 12,
+        "elapsed_s": 0.028,
+        "detail": "Created 12 investigation cases",
+        "error": ""
+      },
+      {
+        "name": "anomaly_detection",
+        "rows": 102,
+        "elapsed_s": 0.586,
+        "detail": "Scored 102 transactions; 6 ML anomalies",
+        "error": ""
+      },
+      {
+        "name": "merge_intelligence",
+        "rows": 12,
+        "elapsed_s": 0.008,
+        "detail": "Enriched 12 cases with anomaly signals",
+        "error": ""
+      },
+      {
+        "name": "pattern_intelligence",
+        "rows": 0,
+        "elapsed_s": 0.041,
+        "detail": "Detected 0 patterns across 0 memberships",
+        "error": ""
+      },
+      {
+        "name": "root_cause_analysis",
+        "rows": 12,
+        "elapsed_s": 0.043,
+        "detail": "Root-cause explanations for 12 cases",
+        "error": ""
+      },
+      {
+        "name": "gst_rag_enrichment",
+        "rows": 12,
+        "elapsed_s": 0.044,
+        "detail": "RAG-enriched 12 cases with GST context",
+        "error": ""
+      },
+      {
+        "name": "review_carryover",
+        "rows": 0,
+        "elapsed_s": 0.025,
+        "detail": "Re-applied 0 stored review decision(s); 2 orphaned decision(s) retained",
+        "error": ""
+      }
+    ]
   }
 ]

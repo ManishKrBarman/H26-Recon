@@ -165,9 +165,22 @@ def enrich_cases_with_patterns(cases: pd.DataFrame, patterns: pd.DataFrame, memb
     return out
 
 
+PATTERN_COLUMNS = [
+    "pattern_id", "pattern_type", "pattern_label", "vendor_code", "issue_type", "period",
+    "occurrence_count", "affected_vendors", "affected_invoices", "concentration",
+    "pattern_confidence", "financial_exposure", "explanation",
+]
+MEMBERSHIP_COLUMNS = ["pattern_id", "case_id", "membership_reason"]
+
+
 def save_pattern_outputs(patterns: pd.DataFrame, memberships: pd.DataFrame, cases: pd.DataFrame, data_dir: Path | None = None, db_path: Path | None = None) -> None:
     data_dir = Path(data_dir) if data_dir else config.DATA_DIR
     db_path = Path(db_path) if db_path else (config.DB_PATH if data_dir == config.DATA_DIR else data_dir / "reconai.db")
+    # Empty pattern results must still produce valid (empty) tables.
+    if patterns.empty:
+        patterns = pd.DataFrame(columns=PATTERN_COLUMNS)
+    if memberships.empty:
+        memberships = pd.DataFrame(columns=MEMBERSHIP_COLUMNS)
     patterns.to_csv(data_dir / "error_patterns.csv", index=False)
     memberships.to_csv(data_dir / "pattern_memberships.csv", index=False)
     cases.to_csv(data_dir / "investigation_cases_patterned.csv", index=False)

@@ -36,8 +36,12 @@ FEATURE_COLUMNS = [
     "taxable_amount", "tax_amount", "total_amount",
     "vendor_txn_count", "vendor_amount_mean_ratio",
     "vendor_amount_std_ratio", "vendor_tax_mean_ratio",
-    "day_of_month", "day_of_week",
+    "day_of_month", "day_of_week", "is_month_end", "is_round_amount",
+    "vendor_share_of_total",
 ]
+
+# Vendors with fewer rows than this get shrunk statistics (no meaningless std ratios).
+MIN_VENDOR_ROWS_FOR_STATS = 5
 
 FEATURE_LABELS = {
     "taxable_amount": "unusual taxable amount",
@@ -49,6 +53,9 @@ FEATURE_LABELS = {
     "vendor_tax_mean_ratio": "tax differs from vendor baseline",
     "day_of_month": "unusual invoice timing",
     "day_of_week": "unusual weekday pattern",
+    "is_month_end": "month-end transaction timing",
+    "is_round_amount": "suspiciously round amount",
+    "vendor_share_of_total": "sudden vendor activity spike",
 }
 
 
@@ -66,14 +73,29 @@ def build_features(invoices: pd.DataFrame) -> pd.DataFrame:
         vendor_amount_mean=("total_amount", "mean"),
         vendor_amount_std=("total_amount", "std"),
         vendor_tax_mean=("tax_amount", "mean"),
+        vendor_total_rows=("invoice_id", "count"),
     ).reset_index()
     df = df.merge(stats, on="vendor_code", how="left")
 
+    # Guard tiny vendor groups: with < MIN_VENDOR_ROWS_FOR_STATS rows, vendor
+    # mean/std ratios are meaningless — shrink them toward the neutral value 1.0.
+    tiny = df["vendor_total_rows"] < MIN_VENDOR_ROWS_FOR_STATS
     df["vendor_amount_mean_ratio"] = df["total_amount"] / df["vendor_amount_mean"].replace(0, np.nan)
     df["vendor_amount_std_ratio"] = (df["total_amount"] - df["vendor_amount_mean"]).abs() / df["vendor_amount_std"].replace(0, np.nan)
     df["vendor_tax_mean_ratio"] = df["tax_amount"] / df["vendor_tax_mean"].replace(0, np.nan)
+    df.loc[tiny, "vendor_amount_mean_ratio"] = 1.0
+    df.loc[tiny, "vendor_amount_std_ratio"] = 0.0
+    df.loc[tiny, "vendor_tax_mean_ratio"] = 1.0
+
+    # Justified behavioural features.
     df["day_of_month"] = df["invoice_date"].dt.day.fillna(0)
     df["day_of_week"] = df["invoice_date"].dt.dayofweek.fillna(0)
+    df["is_month_end"] = df["day_of_month"].isin([28, 29, 30, 31]).astype(float)
+    df["is_round_amount"] = (df["total_amount"] > 0) & (df["total_amount"] % 1000 == 0)
+    df["is_round_amount"] = df["is_round_amount"].astype(float)
+    total_spend = df["total_amount"].sum()
+    vendor_share = df.groupby("vendor_code")["total_amount"].transform("sum") / max(total_spend, 1.0)
+    df["vendor_share_of_total"] = vendor_share
 
     for col in FEATURE_COLUMNS:
         df[col] = pd.to_numeric(df[col], errors="coerce").replace([np.inf, -np.inf], np.nan).fillna(0.0)
@@ -100,12 +122,16 @@ def _model_path(name: str) -> Path:
     return MODELS / name
 
 
-def save_model(model: IsolationForest, scaler: StandardScaler, medians: pd.Series, scales: pd.Series):
-    """Persist the trained model and reference statistics."""
+MODEL_VERSION = "iforest-v2-features-12"
+
+
+def save_model(model: IsolationForest, scaler: StandardScaler, medians: pd.Series, scales: pd.Series, n_invoices: int = 0):
+    """Persist the trained model and reference statistics (versioned)."""
     MODELS.mkdir(parents=True, exist_ok=True)
     joblib.dump(model, _model_path("anomaly_model.joblib"))
     joblib.dump(scaler, _model_path("anomaly_scaler.joblib"))
-    joblib.dump({"medians": medians, "scales": scales}, _model_path("anomaly_stats.joblib"))
+    joblib.dump({"medians": medians, "scales": scales, "version": MODEL_VERSION,
+                 "trained_on_rows": n_invoices}, _model_path("anomaly_stats.joblib"))
 
 
 def load_model():
@@ -143,7 +169,7 @@ def train(invoices: pd.DataFrame, contamination: float = 0.05, random_state: int
     medians = features[FEATURE_COLUMNS].median()
     scales = (features[FEATURE_COLUMNS] - medians).abs().median().replace(0, 1.0)
 
-    save_model(model, scaler, medians, scales)
+    save_model(model, scaler, medians, scales, n_invoices=len(invoices))
     return model, scaler, {"medians": medians, "scales": scales}
 
 
