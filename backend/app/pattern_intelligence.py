@@ -136,12 +136,15 @@ def detect_patterns(cases: pd.DataFrame, invoices: pd.DataFrame | None = None) -
 
 def enrich_cases_with_patterns(cases: pd.DataFrame, patterns: pd.DataFrame, memberships: pd.DataFrame) -> pd.DataFrame:
     out = cases.copy()
-    if patterns.empty or memberships.empty:
+    if patterns.empty or memberships.empty or out.empty:
         out["pattern_count"] = 0
         out["pattern_ids"] = ""
         out["pattern_signal"] = "NO_RECURRING_PATTERN"
         out["pattern_confidence"] = 0.0
         out["pattern_explanation"] = "No recurring discrepancy pattern detected."
+        out["pattern_priority_boost"] = 0.0
+        base = pd.to_numeric(out.get("combined_priority_score", out.get("priority_score", 0.0)), errors="coerce").fillna(0.0)
+        out["final_priority_score"] = base.clip(upper=100).round(2)
         return out
     pcols = ["pattern_id", "pattern_label", "pattern_confidence", "explanation"]
     m = memberships.merge(patterns[pcols], on="pattern_id", how="left")
@@ -154,13 +157,14 @@ def enrich_cases_with_patterns(cases: pd.DataFrame, patterns: pd.DataFrame, memb
     out = out.merge(agg, on="case_id", how="left")
     out["pattern_count"] = out["pattern_count"].fillna(0).astype(int)
     out["pattern_ids"] = out["pattern_ids"].fillna("")
-    out["pattern_confidence"] = out["pattern_confidence"].fillna(0.0).round(2)
+    out["pattern_confidence"] = pd.to_numeric(out["pattern_confidence"], errors="coerce").fillna(0.0).round(2)
     out["pattern_signal"] = out["pattern_count"].gt(0).map({True: "RECURRING_PATTERN", False: "NO_RECURRING_PATTERN"})
     out["pattern_explanation"] = out["pattern_explanation"].fillna("No recurring discrepancy pattern detected.")
     out["pattern_priority_boost"] = (out["pattern_confidence"] * 0.10).round(2)
-    base = out["combined_priority_score"] if "combined_priority_score" in out.columns else out["priority_score"]
+    base = pd.to_numeric(out.get("combined_priority_score", out.get("priority_score", 0.0)), errors="coerce").fillna(0.0)
     out["final_priority_score"] = (base + out["pattern_priority_boost"]).clip(upper=100).round(2)
     return out
+
 
 
 def save_pattern_outputs(patterns: pd.DataFrame, memberships: pd.DataFrame, cases: pd.DataFrame, data_dir: Path = DATA) -> None:

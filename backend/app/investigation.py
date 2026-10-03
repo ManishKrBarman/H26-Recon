@@ -136,10 +136,14 @@ def build_investigation_cases(reconciliation: pd.DataFrame, invoices: pd.DataFra
         "recommended_action", "status", "human_decision", "review_notes",
     ]
     result = pd.DataFrame(rows, columns=columns)
+    for c in ["match_confidence", "financial_exposure", "priority_score"]:
+        result[c] = pd.to_numeric(result[c], errors="coerce").fillna(0.0)
+
     if not result.empty:
         result = result.sort_values(["priority_score", "financial_exposure"], ascending=False).reset_index(drop=True)
         result["case_id"] = [f"CASE-{i:05d}" for i in range(1, len(result) + 1)]
     return result
+
 
 
 def create_investigation_summary(cases: pd.DataFrame) -> Dict:

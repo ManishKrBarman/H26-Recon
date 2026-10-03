@@ -17,7 +17,9 @@ ISSUE_ROOT_CAUSE = {
     "amount_mismatch": ("Accounting amount differs from invoice", "Compare taxable values and source documents; determine whether the difference is an entry error, adjustment, or timing issue."),
     "tax_mismatch": ("Recorded tax differs from expected/source tax", "Recalculate tax from taxable value and applicable rate, then compare the invoice, ledger and GST record."),
     "date_mismatch": ("Posting or filing timing difference", "Compare invoice, accounting and filing dates and determine whether the difference is a valid period/timing adjustment."),
+    "ml_anomaly": ("Statistical transaction anomaly", "Review transaction characteristics against historical vendor profile."),
 }
+
 
 
 def _f(x, default=0.0):
@@ -59,6 +61,17 @@ def _evidence(issue, irow, lrow, grow):
 
 def enrich_root_cause(cases: pd.DataFrame, base: Path = DATA) -> pd.DataFrame:
     cases = cases.copy()
+    extra_cols = [
+        "root_cause", "root_cause_detail", "investigation_explanation", "evidence_detail",
+        "financial_exposure_refined", "pattern_context", "ml_context", "priority_band",
+        "recommended_action_refined", "review_question"
+    ]
+    if cases.empty:
+        out_df = cases.copy()
+        for col in extra_cols:
+            out_df[col] = pd.Series(dtype="float64" if "exposure" in col else "object")
+        return out_df
+
     _, inv, led, gst, vendors = _load(base)
     inv_by = {str(r.invoice_id): r for r in inv.itertuples(index=False)}
     led_by = {str(r.invoice_id): r for r in led.itertuples(index=False)}
@@ -97,9 +110,13 @@ def enrich_root_cause(cases: pd.DataFrame, base: Path = DATA) -> pd.DataFrame:
         elif issue == "duplicate_invoice" and im:
             exposure=_f(im["total_amount"])
             detail=f"Invoice {iid} is part of a duplicate/near-duplicate fingerprint; review the linked booking before counting exposure as a loss."
+        elif issue == "ml_anomaly":
+            exposure = _f(row.get("financial_exposure", im["total_amount"] if im else 0.0))
+            detail = str(row.get("evidence", "Statistical transaction anomaly flagged by Isolation Forest model."))
         else:
             exposure=_f(row.get("financial_exposure"))
             detail="Supporting source records are incomplete for a deeper deterministic explanation."
+
 
         pattern=str(row.get("pattern_explanation", "No recurring pattern detected."))
         if not pattern or pattern.lower()=="nan": pattern="No recurring pattern detected."

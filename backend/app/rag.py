@@ -122,6 +122,7 @@ def query_for_case(row: pd.Series) -> str:
         "amount_mismatch": "taxable value total value invoice accounting record mismatch",
         "date_mismatch": "invoice date invoice matching date accounting filing period",
         "missing_ledger": "invoice accounting records tax invoice particulars",
+        "ml_anomaly": "GST invoice audit trail suspicious transactions unusual high value compliance",
     }
     return queries.get(issue, "GST tax invoice input tax credit reconciliation requirements")
 
@@ -131,7 +132,18 @@ def query_for_case(row: pd.Series) -> str:
 def enrich_with_rag(base: Path = DATA) -> pd.DataFrame:
     """Enrich investigation cases with retrieved GST rule context."""
     cases = pd.read_csv(base / "investigation_cases_explained.csv")
+    if cases.empty:
+        rag_cols = [
+            "gst_rule_context", "gst_rule_title", "gst_rule_source", "gst_rule_url",
+            "gst_rule_relevance", "gst_retrieved_context", "gst_rule_disclaimer"
+        ]
+        out_df = cases.copy()
+        for col in rag_cols:
+            out_df[col] = pd.Series(dtype="float64" if "relevance" in col else "object")
+        return out_df
+
     rows = []
+
     for _, row in cases.iterrows():
         results = retrieve(query_for_case(row), 3)
         usable = [r for r in results if r["score"] > 0]

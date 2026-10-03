@@ -99,7 +99,7 @@ def run_pipeline(data_dir: Path = DATA) -> PipelineResult:
 
         # ── Stage 5: Merge ML intelligence with cases ────────────────
         t = time.perf_counter()
-        enriched = merge_anomaly_signals(cases, anomalies)
+        enriched = merge_anomaly_signals(cases, anomalies, invoices)
         enriched.to_csv(data_dir / "investigation_cases_enriched.csv", index=False)
         result.stages.append(StageResult(
             "merge_intelligence", rows=len(enriched),
