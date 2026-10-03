@@ -39,10 +39,14 @@ def _load(base: Path = DATA):
     inv = pd.read_csv(base / "invoices.csv")
     led = pd.read_csv(base / "ledger.csv")
     gst = pd.read_csv(base / "gst_records.csv")
-    vendors = pd.read_csv(base / "vendors.csv")
+    v_path = base / "vendors.csv"
+    vendors = pd.read_csv(v_path) if v_path.exists() else pd.DataFrame(columns=["vendor_code", "vendor_name"])
     for d, cols in [(inv,["invoice_date"]),(led,["entry_date"]),(gst,["filing_date"])]:
-        for c in cols: d[c] = pd.to_datetime(d[c], errors="coerce")
+        for c in cols:
+            if c in d.columns:
+                d[c] = pd.to_datetime(d[c], errors="coerce")
     return cases, inv, led, gst, vendors
+
 
 
 def _evidence(issue, irow, lrow, grow):
@@ -159,7 +163,10 @@ def enrich_root_cause(cases: pd.DataFrame, base: Path = DATA) -> pd.DataFrame:
 def save_root_cause_outputs(df: pd.DataFrame, base: Path = DATA):
     base.mkdir(parents=True, exist_ok=True)
     df.to_csv(base / "investigation_cases_explained.csv", index=False, encoding="utf-8-sig")
-    with sqlite3.connect(DB) as conn:
+    db_path = base / "reconai.db" if (base / "reconai.db").exists() or base != DATA else DB
+    with sqlite3.connect(db_path) as conn:
+
+
         df.to_sql("investigation_cases_explained", conn, if_exists="replace", index=False)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_explained_priority ON investigation_cases_explained(priority_band)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_explained_root_cause ON investigation_cases_explained(root_cause)")

@@ -11,6 +11,16 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
 
+PATTERN_COLS = [
+    "pattern_id", "pattern_type", "pattern_label", "vendor_code", "issue_type",
+    "period", "occurrence_count", "affected_vendors", "affected_invoices",
+    "concentration", "pattern_confidence", "financial_exposure", "explanation"
+]
+
+MEMBERSHIP_COLS = [
+    "pattern_id", "case_id", "membership_reason"
+]
+
 
 def _safe_float(v, default=0.0):
     try:
@@ -51,8 +61,9 @@ def detect_patterns(cases: pd.DataFrame, invoices: pd.DataFrame | None = None) -
     """Detect recurring discrepancy patterns and return pattern catalog + case memberships."""
     df = cases.copy()
     if df.empty:
-        return pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(columns=PATTERN_COLS), pd.DataFrame(columns=MEMBERSHIP_COLS)
     if invoices is not None and "vendor_code" not in df.columns and "invoice_id" in df.columns:
+
         cols = [c for c in ["invoice_id", "vendor_code", "invoice_date"] if c in invoices.columns]
         df = df.merge(invoices[cols].drop_duplicates("invoice_id"), on="invoice_id", how="left")
     if "vendor_code" not in df.columns:
@@ -127,8 +138,8 @@ def detect_patterns(cases: pd.DataFrame, invoices: pd.DataFrame | None = None) -
             for _, r in grp.iterrows():
                 memberships.append({"pattern_id": pid, "case_id": r["case_id"], "membership_reason": "repeated ML anomaly for vendor"})
 
-    patterns_df = pd.DataFrame(patterns)
-    memberships_df = pd.DataFrame(memberships)
+    patterns_df = pd.DataFrame(patterns) if patterns else pd.DataFrame(columns=PATTERN_COLS)
+    memberships_df = pd.DataFrame(memberships) if memberships else pd.DataFrame(columns=MEMBERSHIP_COLS)
     if not patterns_df.empty:
         patterns_df = patterns_df.sort_values(["pattern_confidence", "financial_exposure"], ascending=False).reset_index(drop=True)
     return patterns_df, memberships_df
@@ -169,6 +180,10 @@ def enrich_cases_with_patterns(cases: pd.DataFrame, patterns: pd.DataFrame, memb
 
 def save_pattern_outputs(patterns: pd.DataFrame, memberships: pd.DataFrame, cases: pd.DataFrame, data_dir: Path = DATA) -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
+    if patterns.empty or len(patterns.columns) == 0:
+        patterns = pd.DataFrame(columns=PATTERN_COLS)
+    if memberships.empty or len(memberships.columns) == 0:
+        memberships = pd.DataFrame(columns=MEMBERSHIP_COLS)
     patterns.to_csv(data_dir / "error_patterns.csv", index=False)
     memberships.to_csv(data_dir / "pattern_memberships.csv", index=False)
     cases.to_csv(data_dir / "investigation_cases_patterned.csv", index=False)
@@ -177,6 +192,7 @@ def save_pattern_outputs(patterns: pd.DataFrame, memberships: pd.DataFrame, case
         memberships.to_sql("pattern_memberships", conn, if_exists="replace", index=False)
         cases.to_sql("investigation_cases_patterned", conn, if_exists="replace", index=False)
         conn.commit()
+
 
 
 def run_and_save(data_dir: Path = DATA):

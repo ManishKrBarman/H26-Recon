@@ -169,10 +169,12 @@ def enrich_with_rag(base: Path = DATA) -> pd.DataFrame:
 
 def save_outputs(df: pd.DataFrame, base: Path = DATA):
     df.to_csv(base / "investigation_cases_rag.csv", index=False)
-    with sqlite3.connect(DB) as conn:
+    db_path = base / "reconai.db" if (base / "reconai.db").exists() or base != DATA else DB
+    with sqlite3.connect(db_path) as conn:
         df.to_sql("investigation_cases_rag", conn, if_exists="replace", index=False)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_rag_rule ON investigation_cases_rag(gst_rule_title)")
         conn.commit()
+
 
 
 def main():
