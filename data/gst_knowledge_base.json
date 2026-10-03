@@ -1,0 +1,44 @@
+[
+  {
+    "id": "INV-01",
+    "title": "Tax invoice particulars",
+    "text": "A tax invoice should contain prescribed particulars including supplier and recipient details, a unique consecutive invoice number, issue date, HSN or accounting code, description, total and taxable value, applicable tax rate and amount of tax charged, place of supply where applicable, and reverse-charge indication where applicable.",
+    "source": "CBIC GST - Tax Invoice Rules",
+    "url": "https://cbic-gst.gov.in/gst-invoice-rules.html"
+  },
+  {
+    "id": "ITC-01",
+    "title": "ITC documentary requirements",
+    "text": "Input tax credit is availed on specified documents such as a supplier invoice or debit note, subject to the applicable conditions and prescribed particulars.",
+    "source": "CBIC GST - Input Tax Credit Rules",
+    "url": "https://cbic-gst.gov.in/input-tax-credit-rules.html"
+  },
+  {
+    "id": "ITC-02",
+    "title": "ITC and supplier-reported information",
+    "text": "CBIC material describes conditions around input tax credit and supplier-reported invoice information, including the role of GSTR-2B in the applicable framework.",
+    "source": "CBIC GST - Input Tax Credit Rules",
+    "url": "https://cbic-gst.gov.in/input-tax-credit-rules.html"
+  },
+  {
+    "id": "MATCH-01",
+    "title": "Invoice matching context",
+    "text": "Invoice matching should consider invoice or debit note number, invoice or debit note date, and tax amount among the relevant matching information described in GST rules.",
+    "source": "CBIC GST Rules - Matching provisions",
+    "url": "https://cbic-gst.gov.in/pdf/01062021-CGST-Rules-2017-Part-A-Rules.pdf"
+  },
+  {
+    "id": "INV-02",
+    "title": "Invoice tax calculation fields",
+    "text": "Tax invoice rules require the invoice to state taxable value, rate of tax and amount of tax charged. These fields can be used as source evidence when ReconAI checks arithmetic consistency.",
+    "source": "CBIC GST - Tax Invoice Rules",
+    "url": "https://cbic-gst.gov.in/gst-invoice-rules.html"
+  },
+  {
+    "id": "ITC-03",
+    "title": "Caution on automated ITC conclusions",
+    "text": "GST input tax credit rules contain conditions, documentary requirements and circumstances affecting eligibility. A reconciliation flag should therefore be treated as a review signal rather than an automatic legal conclusion.",
+    "source": "CBIC GST - Input Tax Credit Rules",
+    "url": "https://cbic-gst.gov.in/input-tax-credit-rules.html"
+  }
+]
