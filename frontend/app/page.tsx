@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api, formatMoney, humanIssue } from '../lib/api';
 
+const AUDIT_RULES = [
+  { key: 'ml_anomaly', label: 'AI Statistical & Behavioral Anomalies', desc: 'Outliers in transaction amount, velocity, or timing patterns' },
+  { key: 'tax_mismatch', label: 'Tax Rate & Calculation Mismatches', desc: 'Variance between computed tax and recorded GST' },
+  { key: 'amount_mismatch', label: 'Taxable Amount Ledger Variances', desc: 'Difference between invoice and ledger taxable value' },
+  { key: 'missing_ledger', label: 'Missing Accounting Ledger Postings', desc: 'Invoices without corresponding accounting entry' },
+  { key: 'missing_gst', label: 'Missing GST Supplier Filings', desc: 'Invoices not reported in supplier GSTR-2B filing reports' },
+  { key: 'duplicate_invoice', label: 'Duplicate Invoice Bookings', desc: 'Same invoice reference or transaction booked multiple times' },
+  { key: 'date_mismatch', label: 'Posting Period & Timing Variances', desc: 'Accounting date delays exceeding cutoff threshold' },
+];
+
 export default function Dashboard() {
   const [d, setD] = useState<any>(null);
   const [err, setErr] = useState('');
@@ -118,40 +128,62 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid stats fade-in">
+      {/* Stats - 3 unified cards */}
+      <div className="grid three fade-in">
         <div className="card">
           <div className="stat-label">Invoices Analyzed</div>
           <div className="stat">{d.processed_transactions ?? totalCases}</div>
-          <div className="stat-change" style={{ color: 'var(--success, #16a34a)', fontWeight: 500 }}>
-            {d.clean_transactions ?? 0} clean ({d.clean_rate ?? 100}%)
-          </div>
-        </div>
-        <div className="card card-glow">
-          <div className="stat-label">Flagged Exceptions</div>
-          <div className="stat">{totalCases}</div>
           <div className="bar bar-brand" style={{ marginTop: 8 }}>
             <i style={{ width: '100%' }} />
           </div>
-        </div>
-        <div className="card">
-          <div className="stat-label">Pending Review</div>
-          <div className="stat">{core.open_cases || 0}</div>
-          <div className="bar bar-brand" style={{ marginTop: 8 }}>
-            <i style={{ width: totalCases ? `${((core.open_cases || 0) / totalCases) * 100}%` : '0%' }} />
+          <div className="stat-change" style={{ color: 'var(--success, #16a34a)', fontWeight: 600, marginTop: 8 }}>
+            ✓ {d.clean_transactions ?? 0} clean matches ({d.clean_rate ?? 100}%)
           </div>
         </div>
-        <div className="card">
-          <div className="stat-label">Critical / High</div>
-          <div className="stat">{(core.critical_priority || 0) + (core.high_priority || 0)}</div>
-          <div className="bar bar-danger" style={{ marginTop: 8 }}>
+
+        {/* Merged Card: Flagged Exceptions + Pending Review + Critical/High */}
+        <div className="card card-glow">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div className="stat-label">Flagged Exceptions</div>
+              <div className="stat">{totalCases}</div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', paddingTop: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="muted" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>Pending Review:</span>
+                <span className="badge open" style={{ fontWeight: 700, padding: '2px 8px', fontSize: 12 }}>
+                  {core.open_cases || 0}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="muted" style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase' }}>Critical / High:</span>
+                <span className="badge critical" style={{ fontWeight: 700, padding: '2px 8px', fontSize: 12 }}>
+                  {(core.critical_priority || 0) + (core.high_priority || 0)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="bar bar-danger" style={{ marginTop: 10 }}>
             <i style={{ width: totalCases ? `${(((core.critical_priority || 0) + (core.high_priority || 0)) / totalCases) * 100}%` : '0%' }} />
           </div>
+          <div className="stat-change" style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{core.open_cases || 0} pending analyst sign-off</span>
+            <Link href="/cases" style={{ color: 'var(--brand)', fontWeight: 600, fontSize: 12 }}>
+              Open queue →
+            </Link>
+          </div>
         </div>
+
         <div className="card">
           <div className="stat-label">Financial Exposure</div>
           <div className="stat">{formatMoney(core.total_exposure)}</div>
-          <div className="stat-change">{totalCases} exceptions tracked</div>
+          <div className="bar bar-brand" style={{ marginTop: 8 }}>
+            <i style={{ width: '100%' }} />
+          </div>
+          <div className="stat-change" style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Estimated risk exposure</span>
+            <span className="tag" style={{ fontSize: 11 }}>{totalCases} cases tracked</span>
+          </div>
         </div>
       </div>
 
@@ -159,24 +191,47 @@ export default function Dashboard() {
       {/* Issue + Decisions + Priority */}
       <div className="grid two" style={{ marginTop: 16 }}>
         <section className="card fade-in">
-          <h2 className="section-title">Issue landscape</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 className="section-title" style={{ margin: 0 }}>Issue landscape</h2>
+            <span className="small muted">7 core audit rules</span>
+          </div>
           <div className="list">
-            {issues.map((x: any) => {
-              const pct = totalCases ? (x.count / totalCases) * 100 : 0;
+            {AUDIT_RULES.map((rule) => {
+              const found = issues.find((x: any) => x.issue_type === rule.key);
+              const count = found ? found.count : 0;
+              const pct = totalCases ? (count / totalCases) * 100 : 0;
               return (
-                <div className="row" key={x.issue_type}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{humanIssue(x.issue_type)}</div>
-                    <div className="bar bar-brand" style={{ width: '100%', marginTop: 3 }}>
-                      <i style={{ width: `${pct}%` }} />
+                <div className="row" key={rule.key} style={{ padding: '9px 0', alignItems: 'center' }}>
+                  <div style={{ flex: 1, paddingRight: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: count > 0 ? 700 : 500, fontSize: 13, color: count > 0 ? 'var(--ink)' : 'var(--ink-secondary)' }}>
+                        {rule.label}
+                      </span>
                     </div>
+                    <div className="small muted" style={{ fontSize: 11, marginTop: 1 }}>{rule.desc}</div>
+                    {count > 0 && (
+                      <div className="bar bar-danger" style={{ width: '100%', marginTop: 5 }}>
+                        <i style={{ width: `${pct}%` }} />
+                      </div>
+                    )}
                   </div>
-                  <b style={{ fontSize: 14 }}>{x.count}</b>
+                  {count > 0 ? (
+                    <Link href={`/cases?issue_type=${rule.key}`}>
+                      <span className="badge critical" style={{ fontSize: 12, padding: '3px 10px', cursor: 'pointer' }}>
+                        {count} flagged →
+                      </span>
+                    </Link>
+                  ) : (
+                    <span className="badge" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', fontSize: 11, padding: '2px 8px' }}>
+                      ✓ Clean
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
         </section>
+
 
         <div className="grid" style={{ gap: 14 }}>
           <section className="card fade-in">

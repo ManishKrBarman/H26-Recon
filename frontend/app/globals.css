@@ -438,8 +438,9 @@ textarea.input { resize: vertical; min-height: 80px; line-height: 1.6; }
 /* ── Responsive ────────────────────────────────── */
 @media (max-width: 1024px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
-  .two, .case-grid { grid-template-columns: 1fr; }
+  .two, .three, .case-grid { grid-template-columns: 1fr; }
 }
+
 @media (max-width: 768px) {
   .topbar { padding: 0 16px; gap: 16px; }
   .nav a { padding: 6px 10px; font-size: 12px; }
