@@ -41,3 +41,8 @@ desktop.ini
 .env
 .env.local
 .env.*.local
+
+# External raw data (fetched from Drive; manifest is committed)
+data/external/drive/
+!data/external/MANIFEST.md
+!data/external/ground_truth_drive.csv
