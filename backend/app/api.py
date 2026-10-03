@@ -56,16 +56,18 @@ def ensure_db_initialized():
     """Ensure database has tables and initial demo data if starting fresh in a new environment."""
     try:
         init_review_tables(DB)
+        has_cases = False
         with sqlite3.connect(DB) as conn:
             cur = conn.cursor()
-            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cases'")
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND (name='investigation_cases_rag' OR name='investigation_cases')")
             has_cases = cur.fetchone() is not None
-            if not has_cases:
-                # Fresh deployment - run initial pipeline run once
-                print("[ReconAI Startup] Fresh deployment detected. Initializing database and models...")
-                from .pipeline import run_pipeline
-                res = run_pipeline(DATA_DIR)
-                print(f"[ReconAI Startup] Initial pipeline finished: ok={res.ok}")
+
+        if not has_cases:
+            # Fresh deployment - run initial pipeline run once
+            print("[ReconAI Startup] Fresh deployment detected. Initializing database and models...")
+            from .pipeline import run_pipeline
+            res = run_pipeline(DATA_DIR)
+            print(f"[ReconAI Startup] Initial pipeline finished: ok={res.ok}")
     except Exception as e:
         print(f"[ReconAI Startup] Note during initialization: {e}")
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { api, formatMoney, humanIssue } from '../lib/api';
+import { api, API_BASE, formatMoney, humanIssue } from '../lib/api';
 
 const AUDIT_RULES = [
   { key: 'ml_anomaly', label: 'AI Statistical & Behavioral Anomalies', desc: 'Outliers in transaction amount, velocity, or timing patterns' },
@@ -43,13 +43,27 @@ export default function Dashboard() {
   if (err) {
     return (
       <main className="main">
-        <div className="card" style={{ maxWidth: 480, margin: '60px auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.4 }}>⚠</div>
-          <h2 style={{ fontSize: 16, marginBottom: 6 }}>API Unavailable</h2>
+        <div className="card" style={{ maxWidth: 520, margin: '60px auto', textAlign: 'center', padding: '32px 24px' }}>
+          <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>⚠</div>
+          <h2 style={{ fontSize: 18, marginBottom: 8, fontWeight: 700 }}>API Unavailable</h2>
           <p className="muted" style={{ marginBottom: 12, fontSize: 13 }}>
-            Start the FastAPI backend on port 8000.
+            Could not connect to the backend API at:
           </p>
-          <code className="tag" style={{ fontSize: 11 }}>{err}</code>
+          <div style={{ marginBottom: 16 }}>
+            <code className="tag" style={{ fontSize: 12, padding: '4px 12px', background: 'var(--panel)', border: '1px solid var(--border)' }}>
+              {API_BASE}
+            </code>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <span className="badge critical" style={{ fontSize: 11, padding: '2px 8px' }}>{err}</span>
+          </div>
+          <p className="small muted" style={{ marginBottom: 16, lineHeight: 1.5 }}>
+            • <b>Local dev</b>: Start FastAPI with <code>uvicorn app.api:app --reload --port 8000</code><br />
+            • <b>Custom port / cloud</b>: Set <code>NEXT_PUBLIC_API_URL</code> to your backend URL (e.g. Render).
+          </p>
+          <button className="btn primary" onClick={() => { setErr(''); load(); }} style={{ padding: '8px 20px', fontSize: 13 }}>
+            ⟳ Retry Connection
+          </button>
         </div>
       </main>
     );
